@@ -29,9 +29,13 @@ You will receive a JSON array of "moments" from a private self-coaching session.
 has: the person's own words, detector signals (hesitation, self-correction, stated uncertainty,
 a repeated topic), and — where available — baseline-relative vitals context.
 
+When a moment has a "self_report", that is the person's OWN rating of difficulty and is the
+MOST authoritative signal — lead with it and weight it above anything inferred from vitals.
+
 For each moment worth acting on, write ONE recommendation: a single-sentence observation
-grounded in the person's OWN words or a recurring topic, optionally noting any vitals change
-strictly relative to their own baseline, followed by ONE concrete, optional suggestion.
+grounded in the person's OWN words, self-report, or a recurring topic, optionally noting any
+vitals change strictly relative to their own baseline, followed by ONE concrete, optional
+suggestion.
 
 Respond with ONLY a JSON array (no prose, no code fences). Each element:
 {"moment_ts_ms": <int, copied from the moment>, "title": "<=6 words", "body": "<=2 sentences",
@@ -50,6 +54,11 @@ def _moments_payload(moments: list[Moment]) -> list[dict]:
                 "moment_ts_ms": m.ts_ms,
                 "speaker": m.utterance.speaker or "me",
                 "said": m.utterance.text,
+                "self_report": (
+                    {"value": m.checkin.value, "label": m.checkin.label, "prompt": m.checkin.prompt}
+                    if m.checkin
+                    else None
+                ),
                 "signals": [
                     {"kind": s.kind, "evidence": s.evidence, "weight": round(s.weight, 2)}
                     for s in m.signals
@@ -136,6 +145,22 @@ class TemplateCoach:
             return None
         topic = self._topic(m)
 
+        # Self-report is authoritative — lead with it when present (ETHICS rule 4).
+        if "self_report" in kinds and m.checkin is not None:
+            rating = f"{m.checkin.value:g}/5" if m.checkin.value is not None else "hard"
+            observation = f"You rated {topic} {rating} — your own read on it."
+            suggestion = f"Want to make {topic} your next focused review, and re-rate it after?"
+            vitals_note = self._vitals_note(m)
+            body = scrub(observation + vitals_note + " " + suggestion)
+            if body:
+                return Recommendation(
+                    moment_ts_ms=m.ts_ms,
+                    title=f"You flagged {topic}",
+                    body=body,
+                    basis=[s.evidence for s in m.signals if s.evidence],
+                    generated_by="template",
+                )
+
         if "uncertainty" in kinds:
             observation = f"You flagged {topic} as something you wanted to clarify."
             suggestion = f"Want a short review of {topic}, then re-explain it in your own words?"
@@ -152,16 +177,7 @@ class TemplateCoach:
             observation = f"A physiological change co-occurred while discussing {topic}."
             suggestion = f"Want to revisit {topic} when you have a calm moment and compare?"
 
-        # Baseline-relative vitals note (never a feeling; ETHICS rules 1–3).
-        vitals_note = ""
-        for s in m.signals:
-            if s.kind == "vitals_delta":
-                vitals_note = (
-                    f" Around that time, {s.evidence}; that alone doesn't establish how you felt."
-                )
-                break
-
-        body = scrub(observation + vitals_note + " " + suggestion)
+        body = scrub(observation + self._vitals_note(m) + " " + suggestion)
         if not body:
             return None
         return Recommendation(
@@ -171,6 +187,17 @@ class TemplateCoach:
             basis=[s.evidence for s in m.signals if s.evidence],
             generated_by="template",
         )
+
+    @staticmethod
+    def _vitals_note(m: Moment) -> str:
+        """A baseline-relative vitals clause (never a feeling; ETHICS rules 1–3)."""
+        for s in m.signals:
+            if s.kind == "vitals_delta":
+                return (
+                    f" Around that time, {s.evidence}; "
+                    "that alone doesn't establish how you felt."
+                )
+        return ""
 
     @staticmethod
     def _title(kinds: set[str], topic: str) -> str:

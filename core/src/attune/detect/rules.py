@@ -137,6 +137,35 @@ class RepeatedTopicDetector(Detector):
         ]
 
 
+class CheckInDetector(Detector):
+    """The user's own self-report — the single most authoritative signal (ETHICS rule 4).
+
+    A reported difficulty outranks anything inferred from physiology, so this emits the
+    maximum weight. It reads only what the person stated, never an inference.
+    """
+
+    name = "self_report"
+
+    def detect(self, moment: Moment, all_moments: list[Moment]) -> list[Signal]:
+        c = moment.checkin
+        if c is None:
+            return []
+        parts = []
+        if c.value is not None:
+            parts.append(f"rated {c.value:g}")
+        if c.label:
+            parts.append(f'"{c.label}"')
+        detail = ", ".join(parts) if parts else "self-report recorded"
+        return [
+            Signal(
+                kind="self_report",
+                detector=self.name,
+                weight=1.0,
+                evidence=f"you {detail}" + (f' ({c.prompt})' if c.prompt else ""),
+            )
+        ]
+
+
 class VitalsDeltaDetector(Detector):
     """A physiological reading unusual *vs. the user's own baseline* at this moment.
 
@@ -165,9 +194,11 @@ class VitalsDeltaDetector(Detector):
         return signals
 
 
-# The default detector stack used by the pipeline (ADR-005). Append vertical-specific
-# detectors here or via config to specialize later.
+# The default detector stack used by the pipeline (ADR-005). CheckInDetector is first because
+# self-report is authoritative (ETHICS rule 4). Append vertical-specific detectors here or via
+# config to specialize later.
 DEFAULT_DETECTORS: list[Detector] = [
+    CheckInDetector(),
     HesitationDetector(),
     SelfCorrectionDetector(),
     UncertaintyDetector(),

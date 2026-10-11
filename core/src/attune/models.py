@@ -126,6 +126,9 @@ class Moment(BaseModel):
     utterance: Utterance
     vitals_window: list[VitalSample] = Field(default_factory=list)
     vitals_context: dict[VitalType, VitalDelta] = Field(default_factory=dict)
+    checkin: CheckIn | None = Field(
+        None, description="The user's own self-report nearest this moment (authoritative)."
+    )
     signals: list[Signal] = Field(default_factory=list)
 
     @property

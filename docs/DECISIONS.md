@@ -304,4 +304,29 @@ this top-to-bottom and understand *why* the code looks the way it does — not j
 - **Consequences:** The live demo uses the app; a no-signing fallback uses an export; a
   no-hardware demo uses synthetic. None is privileged in the core.
 
+---
+
+## ADR-020: Self-report check-ins are a first-class, authoritative signal
+
+- **Status:** accepted (realizes ETHICS rule 4)
+- **Context:** The PDF repeatedly pairs physiology with **self-reported difficulty** ("you
+  reported feeling overwhelmed", "your app asks how difficult the session felt"). ETHICS rule
+  4 states the user's own self-report outranks any inferred signal — but the first cut only
+  had the `CheckIn` model and a `/ingest/checkin` endpoint; the aligner, detectors, and coach
+  ignored them, so the principle wasn't actually in effect.
+- **Decision:** Wire check-ins through the whole pipeline:
+  - `Moment` gains a `checkin` field; the **aligner** binds each check-in to its *single*
+    nearest moment (one-to-one, within the alignment window) so one report can't inflate
+    several moments.
+  - A new **`CheckInDetector`** (first in the stack) emits a `self_report` signal at the
+    **maximum weight (1.0)**, so a self-reported moment ranks above anything inferred.
+  - The **coach** (template + LLM prompt) leads with the self-report when present and treats
+    it as authoritative.
+  - The pipeline reads check-ins from the store (the real app path via `/ingest/checkin`) and,
+    in synthetic mode, seeds one near the hard moment for the demo.
+- **Consequences:** The product now does what the ethics doc promises — the human's own read
+  outranks the machine's inference — and the demo shows a recommendation that opens with
+  "You rated … 4/5" rather than a vitals guess. Covered by tests
+  (`test_self_report_ranks_top_and_is_coached`, `test_checkin_detector_is_authoritative`).
+
 <!-- Append new ADRs below as decisions are made. Never rewrite history; supersede instead. -->

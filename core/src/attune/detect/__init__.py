@@ -3,6 +3,7 @@
 from attune.detect.base import Detector
 from attune.detect.rules import (
     DEFAULT_DETECTORS,
+    CheckInDetector,
     HesitationDetector,
     RepeatedTopicDetector,
     SelfCorrectionDetector,
@@ -13,6 +14,7 @@ from attune.detect.rules import (
 __all__ = [
     "Detector",
     "DEFAULT_DETECTORS",
+    "CheckInDetector",
     "HesitationDetector",
     "RepeatedTopicDetector",
     "SelfCorrectionDetector",

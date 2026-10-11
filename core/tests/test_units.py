@@ -5,12 +5,13 @@ from __future__ import annotations
 from attune.align.baseline import Baseline
 from attune.coach.guardrails import is_compliant, scrub
 from attune.detect.rules import (
+    CheckInDetector,
     HesitationDetector,
     SelfCorrectionDetector,
     UncertaintyDetector,
     VitalsDeltaDetector,
 )
-from attune.models import Moment, Utterance, VitalSample, VitalType
+from attune.models import CheckIn, Moment, Utterance, VitalSample, VitalType
 from attune.sources.health_export import HealthExportSource
 
 
@@ -64,6 +65,19 @@ def test_vitals_delta_is_valence_free():
     assert sigs and "elevated" in sigs[0].evidence
     # No feeling words leak into the evidence.
     assert not any(w in sigs[0].evidence.lower() for w in ("anxious", "nervous", "stressed"))
+
+
+def test_checkin_detector_is_authoritative():
+    with_report = Moment(
+        ts_ms=0,
+        utterance=_utt("x"),
+        checkin=CheckIn(ts_ms=0, value=4, label="hard", prompt="How hard?"),
+    )
+    sigs = CheckInDetector().detect(with_report, [with_report])
+    assert sigs and sigs[0].kind == "self_report" and sigs[0].weight == 1.0
+    assert "4" in sigs[0].evidence
+    # No self-report attached → no signal.
+    assert CheckInDetector().detect(Moment(ts_ms=0, utterance=_utt("x")), []) == []
 
 
 def test_guardrails_block_emotional_claims():

@@ -33,7 +33,8 @@ def _print_human(result: PipelineResult) -> None:
     )
     typer.echo(
         f"  ingested: {result.n_conversations} conversation(s), "
-        f"{result.n_utterances} utterance(s), {result.n_vitals} vital sample(s)\n"
+        f"{result.n_utterances} utterance(s), {result.n_vitals} vital sample(s), "
+        f"{result.n_checkins} check-in(s)\n"
     )
 
     typer.secho(f"  Salient moments ({len(result.salient_moments)}):", bold=True)

@@ -45,6 +45,7 @@ class PipelineResult(BaseModel):
     n_conversations: int = 0
     n_utterances: int = 0
     n_vitals: int = 0
+    n_checkins: int = 0
     moments: list[Moment] = Field(default_factory=list)
     salient_moments: list[Moment] = Field(default_factory=list)
     recommendations: list[Recommendation] = Field(default_factory=list)
@@ -85,8 +86,16 @@ class Pipeline:
                 self.store.add_vitals(pulled)
         vitals = self.store.get_vitals(start_ms, end_ms)
 
-        # 3. Align → moments.
-        moments = self.aligner.build_moments(conversations, vitals)
+        # 2b. Check-ins (self-report) → the authoritative signal (ETHICS rule 4). Real ones are
+        #     pushed to the store via POST /ingest/checkin; synthetic mode adds a demo one.
+        checkins = self.store.get_checkins(start_ms, end_ms)
+        if self.settings.conversation_source == "synthetic":
+            from attune.sources.synthetic import synthetic_checkins
+
+            checkins = checkins + synthetic_checkins(start_ms, end_ms)
+
+        # 3. Align → moments (utterance + vitals context + nearest self-report).
+        moments = self.aligner.build_moments(conversations, vitals, checkins)
 
         # 4. Detect → annotate moments in place.
         for detector in self.detectors:
@@ -107,6 +116,7 @@ class Pipeline:
             n_conversations=len(conversations),
             n_utterances=sum(len(c.utterances) for c in conversations),
             n_vitals=len(vitals),
+            n_checkins=len(checkins),
             moments=moments,
             salient_moments=salient,
             recommendations=recommendations,

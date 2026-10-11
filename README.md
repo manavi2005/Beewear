@@ -81,4 +81,5 @@ pytest                # 11 tests, all green
 - ✅ Bee proxy adapter, Apple Health export parser, synthetic + replay twins.
 - ✅ FastAPI ingestion/run service; `attune` CLI.
 - ✅ Companion app Swift sources + Xcode guide.
+- ✅ Self-report check-ins wired end-to-end as the authoritative signal (ADR-020).
 - ⏳ Pick a vertical (Composure AI / NeuroLearn) and add its detectors + coach profile.

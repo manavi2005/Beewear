@@ -30,7 +30,7 @@ The difference between those two sentences is the entire ethical posture of the 
 | 1 | **Baseline-relative only.** Signals are computed vs. the user's *own* recent baseline, never population thresholds. | `align/baseline.py`, `detect/rules.py` |
 | 2 | **No emotion/cognition inference.** The coach may describe signals and suggest actions, but must not assert internal states. | `coach/guardrails.py` (system prompt + post-hoc `scrub()`) |
 | 3 | **Correlation ≠ causation, stated.** When vitals and a conversation moment co-occur, outputs explicitly note co-occurrence is not causation. | `coach/guardrails.py` |
-| 4 | **Self-report is first-class.** The user's own `CheckIn` ("that felt hard: 4/5") outranks any inferred signal. | `models.CheckIn`, aligner weighting |
+| 4 | **Self-report is first-class.** The user's own `CheckIn` ("that felt hard: 4/5") outranks any inferred signal. *(Implemented end-to-end: `CheckInDetector` weight 1.0, aligner one-to-one binding, coach leads with it — ADR-020.)* | `detect.CheckInDetector`, `align.Aligner`, `coach` |
 | 5 | **Private coaching, not evaluation.** Framing is always the user coaching themselves. Never an employer's or third party's assessment. | `coach/guardrails.py`, product copy |
 | 6 | **Opt-in and local-first.** Data stays in a local SQLite file; nothing is uploaded except the user's own calls to their own Bee account / their own Anthropic key. | `store.py`, `config.py` |
 | 7 | **Suggestions, not commands.** Output is phrased as questions/options ("want to…?"), never directives about health. | `coach/guardrails.py` |

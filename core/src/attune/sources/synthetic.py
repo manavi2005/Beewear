@@ -17,7 +17,7 @@ from __future__ import annotations
 import random
 from collections.abc import Iterable
 
-from attune.models import Conversation, Utterance, VitalSample, VitalType
+from attune.models import CheckIn, Conversation, Utterance, VitalSample, VitalType
 
 # ruff: noqa: E501  — the scripted utterances below read better unwrapped (demo data)
 
@@ -41,6 +41,23 @@ _SCRIPT: list[tuple[str, int, str]] = [
 
 _SESSION_SECONDS = 20 * 60  # 20-minute session
 _HARD_MOMENT_S = 1082  # offset of the elevated-vitals centre
+
+
+def synthetic_checkins(start_ms: int, end_ms: int) -> list[CheckIn]:
+    """A self-report shortly after the hard moment (mirrors the PDF's 2:30 PM "how difficult
+    did that feel?" prompt). Self-report is authoritative (ETHICS rule 4)."""
+    session_start = end_ms - _SESSION_SECONDS * 1000
+    ts = session_start + (_HARD_MOMENT_S + 30) * 1000  # ~30s after the hard moment
+    if ts < start_ms or ts > end_ms:
+        return []
+    return [
+        CheckIn(
+            ts_ms=ts,
+            prompt="How difficult did that feel, 1–5?",
+            value=4.0,
+            label="hard",
+        )
+    ]
 
 
 class SyntheticConversationSource:

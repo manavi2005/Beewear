@@ -43,6 +43,16 @@ def test_every_recommendation_is_guardrail_compliant():
         assert rec.generated_by == "template"
 
 
+def test_self_report_ranks_top_and_is_coached():
+    """The authoritative self-report should attach, rank the moment top, and be coached."""
+    result = Pipeline(_settings()).run(*default_window(60))
+    assert result.n_checkins >= 1
+    top = result.salient_moments[0]
+    assert top.checkin is not None and top.checkin.value == 4.0
+    assert any(s.kind == "self_report" and s.weight == 1.0 for s in top.signals)
+    assert any("rated" in r.body.lower() for r in result.recommendations)
+
+
 def test_replay_source_runs():
     result = Pipeline(_settings(conversation_source="replay")).run(*default_window(60))
     assert result.n_utterances > 0

@@ -58,6 +58,7 @@ This is **also the `POST /ingest/vitals` request schema** (ADR-009).
 | `utterance` | `Utterance` | the anchor |
 | `vitals_window` | `list[VitalSample]` | samples within the alignment window |
 | `vitals_context` | `dict[VitalType, VitalDelta]` | per-type delta vs. baseline |
+| `checkin` | `CheckIn \| None` | the user's nearest self-report (authoritative; ADR-020) |
 | `signals` | `list[Signal]` | attached by detectors |
 
 ### `VitalDelta` — a baseline-relative description (ADR-011)
