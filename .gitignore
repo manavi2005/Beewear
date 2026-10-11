@@ -1,0 +1,40 @@
+# ─── Secrets & config ─────────────────────────────────────────────────────────
+.env
+*.env
+!*.env.example
+
+# ─── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# ─── Local data / generated ───────────────────────────────────────────────────
+*.db
+*.sqlite3
+core/attune.db
+
+# ─── Apple Health exports (can be multi-GB; never commit personal health data) ─
+apple_health_export/
+apple_health_export.zip
+export.xml
+export_cda.xml
+
+# ─── Xcode / Swift (companion app) ────────────────────────────────────────────
+companion/**/build/
+companion/**/DerivedData/
+companion/**/*.xcuserstate
+companion/**/xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# ─── macOS / editors ──────────────────────────────────────────────────────────
+.DS_Store
+.idea/
+.vscode/

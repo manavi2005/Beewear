@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "attune"
+version = "0.1.0"
+description = "Concept-agnostic base layer for an adaptive AI coach: Bee conversation context + Apple Watch physiology, aligned in time."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Attune (Amazon Bee Hackathon)" }]
+
+# Runtime dependencies. Kept deliberately small; the Anthropic SDK is the only
+# "heavy" one and the coach degrades gracefully without it (ADR-014).
+dependencies = [
+    "pydantic>=2.6,<3",
+    "pydantic-settings>=2.2,<3",
+    "httpx>=0.27,<1",          # Bee proxy REST + SSE (ADR-003)
+    "fastapi>=0.110,<1",       # ingestion + run service (ADR-009)
+    "uvicorn[standard]>=0.29,<1",
+    "typer>=0.12,<1",          # CLI
+    "anthropic>=0.39",         # coach LLM (ADR-014); import is lazy/optional
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.5",
+]
+
+[project.scripts]
+attune = "attune.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+# B008: FastAPI's `Body(...)`/`Depends(...)` in argument defaults is the framework's
+# intended pattern, not a bug.
+ignore = ["B008"]

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Minimal stand-in for Apple Health's export.xml (ADR-006). Real exports come from the
+     Health app (avatar, Export All Health Data) as apple_health_export.zip. This sample
+     exists only to exercise the parser and tests; point ATTUNE_HEALTH_EXPORT_PATH at your
+     real export for real data. See core/README.md for how to query it with a matching
+     time window. -->
+<HealthData locale="en_US">
+  <Record type="HKQuantityTypeIdentifierHeartRate" unit="count/min" startDate="2026-10-10 16:00:00 -0700" endDate="2026-10-10 16:00:00 -0700" value="71"/>
+  <Record type="HKQuantityTypeIdentifierHeartRate" unit="count/min" startDate="2026-10-10 16:05:00 -0700" endDate="2026-10-10 16:05:00 -0700" value="73"/>
+  <Record type="HKQuantityTypeIdentifierHeartRate" unit="count/min" startDate="2026-10-10 16:10:00 -0700" endDate="2026-10-10 16:10:00 -0700" value="98"/>
+  <Record type="HKQuantityTypeIdentifierHeartRate" unit="count/min" startDate="2026-10-10 16:12:00 -0700" endDate="2026-10-10 16:12:00 -0700" value="102"/>
+  <Record type="HKQuantityTypeIdentifierHeartRate" unit="count/min" startDate="2026-10-10 16:15:00 -0700" endDate="2026-10-10 16:15:00 -0700" value="76"/>
+  <Record type="HKQuantityTypeIdentifierHeartRateVariabilitySDNN" unit="ms" startDate="2026-10-10 16:00:00 -0700" endDate="2026-10-10 16:00:00 -0700" value="58"/>
+  <Record type="HKQuantityTypeIdentifierHeartRateVariabilitySDNN" unit="ms" startDate="2026-10-10 16:10:00 -0700" endDate="2026-10-10 16:10:00 -0700" value="36"/>
+  <Record type="HKQuantityTypeIdentifierRespiratoryRate" unit="count/min" startDate="2026-10-10 16:00:00 -0700" endDate="2026-10-10 16:00:00 -0700" value="14"/>
+  <Record type="HKQuantityTypeIdentifierRespiratoryRate" unit="count/min" startDate="2026-10-10 16:10:00 -0700" endDate="2026-10-10 16:10:00 -0700" value="17"/>
+  <Record type="HKCategoryTypeIdentifierSleepAnalysis" startDate="2026-10-10 00:30:00 -0700" endDate="2026-10-10 06:45:00 -0700" value="HKCategoryValueSleepAnalysisAsleepCore"/>
+</HealthData>

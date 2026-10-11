@@ -1,0 +1,52 @@
+[
+  {
+    "id": "replay-conv-1",
+    "start_ms": 1728570000000,
+    "end_ms": 1728570120000,
+    "summary": "Debugging discussion: request timeouts and connection pooling.",
+    "utterances": [
+      {
+        "id": "replay-conv-1-u0",
+        "ts_ms": 1728570000000,
+        "speaker": "other",
+        "text": "Walk me through the bug you were chasing.",
+        "conversation_id": "replay-conv-1"
+      },
+      {
+        "id": "replay-conv-1-u1",
+        "ts_ms": 1728570010000,
+        "speaker": "me",
+        "text": "The request was timing out, and I wasn't sure if it was the retry logic or the connection pool.",
+        "conversation_id": "replay-conv-1"
+      },
+      {
+        "id": "replay-conv-1-u2",
+        "ts_ms": 1728570040000,
+        "speaker": "me",
+        "text": "I tried increasing the pool size — actually, wait, that made it worse.",
+        "conversation_id": "replay-conv-1"
+      },
+      {
+        "id": "replay-conv-1-u3",
+        "ts_ms": 1728570070000,
+        "speaker": "me",
+        "text": "I don't fully understand why the pool starves under load.",
+        "conversation_id": "replay-conv-1"
+      },
+      {
+        "id": "replay-conv-1-u4",
+        "ts_ms": 1728570100000,
+        "speaker": "other",
+        "text": "Pools are tricky. What did the metrics show?",
+        "conversation_id": "replay-conv-1"
+      },
+      {
+        "id": "replay-conv-1-u5",
+        "ts_ms": 1728570115000,
+        "speaker": "me",
+        "text": "The pool wait time spiked, so I think it's contention, but I want to review connection pooling.",
+        "conversation_id": "replay-conv-1"
+      }
+    ]
+  }
+]
