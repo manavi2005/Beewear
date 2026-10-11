@@ -329,4 +329,20 @@ this top-to-bottom and understand *why* the code looks the way it does — not j
   "You rated … 4/5" rather than a vitals guess. Covered by tests
   (`test_self_report_ranks_top_and_is_coached`, `test_checkin_detector_is_authoritative`).
 
+---
+
+## ADR-021: CI via GitHub Actions (lint + test + CLI smoke)
+
+- **Status:** accepted
+- **Context:** The repo should stay green and prove the free, no-hardware path keeps working as
+  people (teammates, a friend picking it up) change it.
+- **Decision:** A GitHub Actions workflow (`.github/workflows/ci.yml`) runs on every push and
+  PR to `main`: install the core editable with dev deps, `ruff check`, `pytest`, and a CLI
+  smoke test (`attune run --json` + `attune version`) across Python 3.10/3.11/3.12. The Swift
+  companion app is **not** built in CI — it ships as source assembled in Xcode (ADR-018), so
+  there is no buildable project to compile on a runner.
+- **Consequences:** A red badge means something broke; the default demo path is continuously
+  verified on three Python versions. macOS/Xcode build checks can be added later if the
+  companion app graduates to a committed `.xcodeproj`.
+
 <!-- Append new ADRs below as decisions are made. Never rewrite history; supersede instead. -->

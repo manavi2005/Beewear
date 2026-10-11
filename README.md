@@ -1,5 +1,7 @@
 # Attune
 
+[![CI](https://github.com/manavi2005/Beewear/actions/workflows/ci.yml/badge.svg)](https://github.com/manavi2005/Beewear/actions/workflows/ci.yml)
+
 **An adaptive AI coach that understands both the context of your day and your body's response
 to it.** Built for the Amazon "Bee (Wearable AI)" hackathon.
 
@@ -82,4 +84,5 @@ pytest                # 11 tests, all green
 - ✅ FastAPI ingestion/run service; `attune` CLI.
 - ✅ Companion app Swift sources + Xcode guide.
 - ✅ Self-report check-ins wired end-to-end as the authoritative signal (ADR-020).
+- ✅ GitHub Actions CI: ruff + pytest + CLI smoke test on Python 3.10/3.11/3.12 (ADR-021).
 - ⏳ Pick a vertical (Composure AI / NeuroLearn) and add its detectors + coach profile.
