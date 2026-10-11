@@ -20,6 +20,7 @@ VitalsSourceName = Literal["synthetic", "health_export", "api"]
 #   ollama    — a local LLM via Ollama, free (runs on your machine)
 #   anthropic — Claude via the Anthropic API, PAID per token (opt-in only)
 CoachBackend = Literal["template", "ollama", "anthropic"]
+ProductVertical = Literal["generic", "neurolearn"]
 
 
 class Settings(BaseSettings):
@@ -35,6 +36,10 @@ class Settings(BaseSettings):
     # Source selection (ADR-010)
     conversation_source: ConversationSourceName = "synthetic"
     vitals_source: VitalsSourceName = "synthetic"
+
+    # Vertical selection (ADR-022). NeuroLearn is the chosen demo vertical; "generic"
+    # keeps the reusable Attune base layer available for future concepts.
+    vertical: ProductVertical = "neurolearn"
 
     # Bee local proxy (ADR-003)
     bee_proxy_url: str = "http://127.0.0.1:8787"

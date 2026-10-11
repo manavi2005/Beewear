@@ -1,8 +1,8 @@
 # Architecture
 
-> Working codename: **Attune** (ADR-016). Concept-agnostic base layer for an adaptive AI
-> coach that combines **what you discussed** (Bee) with **how your body responded** (Apple
-> Watch), aligned in time.
+> Working codename: **Attune** (ADR-016). The chosen demo vertical is **NeuroLearn**
+> (ADR-022): an adaptive study coach that combines **what you discussed** (Bee) with
+> **how your body responded** (Apple Watch), aligned in time.
 
 ## One-paragraph summary
 
@@ -10,10 +10,10 @@ Two independent pipelines — conversation context from **Bee** and physiologica
 an **Apple Watch** — are each translated into one **canonical domain model** at their adapter
 boundary, persisted to a local **SQLite** store keyed by UTC-epoch-millisecond timestamps,
 then **aligned in time** to produce *moments*. Pluggable **detectors** annotate moments
-(linguistic hesitation, vitals deltas vs. a personal baseline), and a guardrailed **coach**
-turns notable moments into hedged, personalized recommendations. Everything is driven by a
-small **FastAPI** service and a **CLI**, and every external source has a **replay/synthetic
-twin** so the whole thing runs with zero hardware.
+(linguistic hesitation, learning objectives, linked concepts, vitals deltas vs. a personal
+baseline), and a guardrailed **coach** turns notable moments into hedged NeuroLearn study
+recommendations. Everything is driven by a small **FastAPI** service and a **CLI**, and every
+external source has a **replay/synthetic twin** so the whole thing runs with zero hardware.
 
 ## Data flow
 
@@ -74,9 +74,9 @@ twin** so the whole thing runs with zero hardware.
 | `align/baseline.py` | Personal baseline per vital type (ADR-011) | `Baseline`, `rolling_baseline()` |
 | `align/aligner.py` | Join utterances ↔ vitals → `Moment`s (ADR-008) | `Aligner` |
 | `detect/base.py` | Detector interface (Strategy) | `Detector` |
-| `detect/rules.py` | Generic, concept-agnostic detectors (ADR-005) | `HesitationDetector`, `SelfCorrectionDetector`, `RepeatedTopicDetector`, `VitalsDeltaDetector` |
+| `detect/rules.py` | Generic + NeuroLearn detectors (ADR-005/022) | `HesitationDetector`, `StudyObjectiveDetector`, `ConceptLinkDetector`, `VitalsDeltaDetector` |
 | `coach/guardrails.py` | Enforced ethical constraints (ADR-011) | `GUARDRAILS`, `scrub()` |
-| `coach/coach.py` | Claude-backed recommendations (ADR-014) | `Coach`, `TemplateCoach` |
+| `coach/coach.py` | Profiled template/Ollama/Claude recommendations (ADR-014/022) | `Coach`, `TemplateCoach` |
 | `pipeline.py` | Orchestrates source → store → align → detect → coach | `Pipeline` |
 | `api.py` | FastAPI ingestion + run service (ADR-009) | `app` |
 | `cli.py` | `attune` command-line entry point | `main()` |

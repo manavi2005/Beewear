@@ -14,8 +14,10 @@ It aligns them in time, surfaces notable *moments* (where you hesitated, correct
 said you didn't understand, kept returning to a topic — optionally alongside a heart-rate or
 HRV change relative to *your own* baseline), and produces short, **hedged, private** coaching.
 
-> This repository is the **base layer**: a concept-agnostic core that the specific hackathon
-> concepts (Composure AI for interview practice, NeuroLearn for study) plug into later.
+> The selected hackathon vertical is now **NeuroLearn**: a private study coach that turns
+> Bee-captured learning conversations, self-reported difficulty, and baseline-relative Watch
+> context into focused review prompts. The reusable Attune base remains available through
+> `ATTUNE_VERTICAL=generic`.
 
 ## Why this split exists (the one fact that shaped everything)
 
@@ -85,4 +87,4 @@ pytest                # 11 tests, all green
 - ✅ Companion app Swift sources + Xcode guide.
 - ✅ Self-report check-ins wired end-to-end as the authoritative signal (ADR-020).
 - ✅ GitHub Actions CI: ruff + pytest + CLI smoke test on Python 3.10/3.11/3.12 (ADR-021).
-- ⏳ Pick a vertical (Composure AI / NeuroLearn) and add its detectors + coach profile.
+- ✅ NeuroLearn vertical selected with study-objective/concept-link detectors + coach profile (ADR-022).

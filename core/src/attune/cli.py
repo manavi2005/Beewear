@@ -102,6 +102,7 @@ def version() -> None:
     """Print version and the active (free-by-default) configuration."""
     s = get_settings()
     typer.echo(f"attune {__version__}")
+    typer.echo(f"  vertical            = {s.vertical}")
     typer.echo(f"  conversation_source = {s.conversation_source}")
     typer.echo(f"  vitals_source       = {s.vitals_source}")
     typer.echo(f"  coach_backend       = {s.coach_backend}"

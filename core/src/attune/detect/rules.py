@@ -194,10 +194,73 @@ class VitalsDeltaDetector(Detector):
         return signals
 
 
-# The default detector stack used by the pipeline (ADR-005). CheckInDetector is first because
-# self-report is authoritative (ETHICS rule 4). Append vertical-specific detectors here or via
-# config to specialize later.
-DEFAULT_DETECTORS: list[Detector] = [
+class StudyObjectiveDetector(Detector):
+    """NeuroLearn: the user names something they want to study, review, or practice."""
+
+    name = "neurolearn_study_objective"
+    _pattern = re.compile(
+        r"\b("
+        r"want to review|need to review|want to study|need to study|"
+        r"review before|practice|rehearse|learn more about|next time"
+        r")\b",
+        re.IGNORECASE,
+    )
+
+    def detect(self, moment: Moment, all_moments: list[Moment]) -> list[Signal]:
+        if not _is_me(moment):
+            return []
+        m = self._pattern.search(moment.utterance.text)
+        if not m:
+            return []
+        return [
+            Signal(
+                kind="study_objective",
+                detector=self.name,
+                weight=0.8,
+                evidence=f'study objective: "{m.group(0).strip()}"',
+            )
+        ]
+
+
+class ConceptLinkDetector(Detector):
+    """NeuroLearn: multiple technical concepts named together can become a review map."""
+
+    name = "neurolearn_concept_link"
+    _concepts = {
+        "base62": re.compile(r"\bbase\s*62|base62\b", re.IGNORECASE),
+        "cache": re.compile(r"\bcach(?:e|ing)\b", re.IGNORECASE),
+        "collisions": re.compile(r"\bcollid(?:e|es|ing)|collisions?\b", re.IGNORECASE),
+        "consistent hashing": re.compile(r"\bconsistent hashing\b", re.IGNORECASE),
+        "cross-shard joins": re.compile(r"\bcross[-\s]?shard joins?\b", re.IGNORECASE),
+        "database": re.compile(r"\bdatabases?\b", re.IGNORECASE),
+        "hashing": re.compile(r"\bhash(?:ing)?\b", re.IGNORECASE),
+        "sharding": re.compile(r"\bshard(?:ing|s|ed)?\b", re.IGNORECASE),
+        "system design": re.compile(r"\bsystem design\b", re.IGNORECASE),
+    }
+
+    def detect(self, moment: Moment, all_moments: list[Moment]) -> list[Signal]:
+        if not _is_me(moment):
+            return []
+        found = [
+            name
+            for name, pattern in self._concepts.items()
+            if pattern.search(moment.utterance.text)
+        ]
+        if len(found) < 2:
+            return []
+        return [
+            Signal(
+                kind="concept_link",
+                detector=self.name,
+                weight=min(1.0, 0.45 + 0.15 * len(found)),
+                evidence=f"concept links: {', '.join(found)}",
+            )
+        ]
+
+
+# The reusable detector stack used by the generic base layer (ADR-005). CheckInDetector is
+# first because self-report is authoritative (ETHICS rule 4).
+GENERIC_DETECTORS: list[Detector] = [
     CheckInDetector(),
     HesitationDetector(),
     SelfCorrectionDetector(),
@@ -205,3 +268,25 @@ DEFAULT_DETECTORS: list[Detector] = [
     RepeatedTopicDetector(),
     VitalsDeltaDetector(),
 ]
+
+# NeuroLearn specializes Attune for study/interview-prep learning sessions (ADR-022).
+NEUROLEARN_DETECTORS: list[Detector] = [
+    CheckInDetector(),
+    StudyObjectiveDetector(),
+    ConceptLinkDetector(),
+    HesitationDetector(),
+    SelfCorrectionDetector(),
+    UncertaintyDetector(),
+    RepeatedTopicDetector(),
+    VitalsDeltaDetector(),
+]
+
+# Backwards-compatible default for code that imports the detector stack directly.
+DEFAULT_DETECTORS: list[Detector] = NEUROLEARN_DETECTORS
+
+
+def build_detectors(vertical: str) -> list[Detector]:
+    """Build a fresh detector stack for the configured product vertical."""
+    if vertical == "generic":
+        return [type(d)() for d in GENERIC_DETECTORS]
+    return [type(d)() for d in NEUROLEARN_DETECTORS]

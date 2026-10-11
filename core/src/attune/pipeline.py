@@ -18,7 +18,7 @@ from attune.align import Aligner
 from attune.coach import build_coach
 from attune.coach.coach import Coach
 from attune.config import Settings, get_settings
-from attune.detect import DEFAULT_DETECTORS
+from attune.detect import build_detectors
 from attune.detect.base import Detector
 from attune.models import Moment, Recommendation
 from attune.sources import build_conversation_source, build_vitals_source
@@ -62,7 +62,9 @@ class Pipeline:
     ):
         self.settings = settings or get_settings()
         self.store = store or Store(self.settings.db_path)
-        self.detectors = detectors if detectors is not None else DEFAULT_DETECTORS
+        self.detectors = (
+            detectors if detectors is not None else build_detectors(self.settings.vertical)
+        )
         self.coach = coach or build_coach(self.settings)
         self.aligner = Aligner(
             align_window_ms=self.settings.align_window_ms,

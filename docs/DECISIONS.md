@@ -345,4 +345,26 @@ this top-to-bottom and understand *why* the code looks the way it does — not j
   verified on three Python versions. macOS/Xcode build checks can be added later if the
   companion app graduates to a committed `.xcodeproj`.
 
+## ADR-022: Pick NeuroLearn as the first vertical
+
+- **Status:** accepted
+- **Context:** The base layer is complete, tested, and still concept-agnostic. The remaining
+  hackathon step is to choose one product story and add its detector/coach specialization.
+  The current synthetic/replay data already models a learning session: system-design practice,
+  explicit "I don't understand" language, a self-reported difficulty check-in, and topics the
+  learner wants to review.
+- **Decision:** Ship **NeuroLearn** as the default vertical. `ATTUNE_VERTICAL=neurolearn`
+  enables study-specific detectors:
+  - `StudyObjectiveDetector` finds moments where the learner explicitly names something to
+    review, study, practice, or revisit.
+  - `ConceptLinkDetector` finds utterances that connect multiple study concepts, creating a
+    small review-map signal.
+  The coach receives a NeuroLearn profile that prefers concrete study actions: short review
+  blocks, retrieval practice, teach-back, and concept maps. `ATTUNE_VERTICAL=generic` keeps
+  the reusable Attune detector stack available for other concepts such as Composure AI.
+- **Consequences:** The demo is now a complete product path rather than only a platform:
+  Bee captures the study conversation, Watch data remains baseline-relative context,
+  self-report remains authoritative, and recommendations are framed as private learning
+  support. The specialization is covered by tests for both the NeuroLearn and generic paths.
+
 <!-- Append new ADRs below as decisions are made. Never rewrite history; supersede instead. -->

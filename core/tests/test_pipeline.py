@@ -53,6 +53,24 @@ def test_self_report_ranks_top_and_is_coached():
     assert any("rated" in r.body.lower() for r in result.recommendations)
 
 
+def test_neurolearn_vertical_adds_study_signals_and_profile():
+    result = Pipeline(_settings(vertical="neurolearn")).run(*default_window(60))
+    kinds = {s.kind for m in result.salient_moments for s in m.signals}
+    assert "study_objective" in kinds
+    assert "concept_link" in kinds
+    assert any(
+        "review block" in r.body.lower() or "from memory" in r.body.lower()
+        for r in result.recommendations
+    )
+
+
+def test_generic_vertical_keeps_vertical_detectors_out():
+    result = Pipeline(_settings(vertical="generic")).run(*default_window(60))
+    kinds = {s.kind for m in result.salient_moments for s in m.signals}
+    assert "study_objective" not in kinds
+    assert "concept_link" not in kinds
+
+
 def test_replay_source_runs():
     result = Pipeline(_settings(conversation_source="replay")).run(*default_window(60))
     assert result.n_utterances > 0

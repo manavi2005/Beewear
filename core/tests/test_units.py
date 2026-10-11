@@ -6,8 +6,10 @@ from attune.align.baseline import Baseline
 from attune.coach.guardrails import is_compliant, scrub
 from attune.detect.rules import (
     CheckInDetector,
+    ConceptLinkDetector,
     HesitationDetector,
     SelfCorrectionDetector,
+    StudyObjectiveDetector,
     UncertaintyDetector,
     VitalsDeltaDetector,
 )
@@ -78,6 +80,16 @@ def test_checkin_detector_is_authoritative():
     assert "4" in sigs[0].evidence
     # No self-report attached → no signal.
     assert CheckInDetector().detect(Moment(ts_ms=0, utterance=_utt("x")), []) == []
+
+
+def test_neurolearn_detectors_find_study_signals():
+    objective = Moment(
+        ts_ms=0,
+        utterance=_utt("I'd want to review consistent hashing and cross-shard joins."),
+    )
+    assert StudyObjectiveDetector().detect(objective, [objective])
+    links = ConceptLinkDetector().detect(objective, [objective])
+    assert links and links[0].kind == "concept_link"
 
 
 def test_guardrails_block_emotional_claims():

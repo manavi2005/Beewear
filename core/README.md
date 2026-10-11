@@ -1,7 +1,9 @@
 # Attune — core
 
-The concept-agnostic base layer: ingest Bee conversation context + Apple Watch physiology,
-align them in time, surface notable moments, and generate hedged, baseline-relative coaching.
+The NeuroLearn demo layer on top of Attune: ingest Bee learning-session context + Apple Watch
+physiology, align them in time, surface notable moments, and generate hedged,
+baseline-relative study coaching. Set `ATTUNE_VERTICAL=generic` to run the reusable base
+without NeuroLearn-specific detectors.
 
 > Full design in [`../docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md); every decision in
 > [`../docs/DECISIONS.md`](../docs/DECISIONS.md); guardrails in
@@ -18,8 +20,8 @@ attune run                      # end-to-end pipeline on generated data
 ```
 
 You should see a conversation, the salient moments it detected (hesitation, self-correction,
-stated uncertainty, a repeated topic, a baseline-relative vitals change), and a short list of
-recommendations — all produced with **zero cost** (ADR-017).
+stated uncertainty, a repeated topic, NeuroLearn study signals, a baseline-relative vitals
+change), and a short list of recommendations — all produced with **zero cost** (ADR-017).
 
 ## Common commands
 
