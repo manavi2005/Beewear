@@ -88,3 +88,6 @@ pytest                # 11 tests, all green
 - ✅ Self-report check-ins wired end-to-end as the authoritative signal (ADR-020).
 - ✅ GitHub Actions CI: ruff + pytest + CLI smoke test on Python 3.10/3.11/3.12 (ADR-021).
 - ✅ NeuroLearn vertical selected with study-objective/concept-link detectors + coach profile (ADR-022).
+- ✅ Watch-test tooling: `simulate-watch`, `doctor`, `serve --lan` — exercise the full loop with no hardware (ADR-023).
+- ✅ Live dashboard: heart-rate chart with moment markers, BPM tile, one-tap check-ins, Live mode (ADR-024).
+- ⏳ Build `companion/` in Xcode and stream from a real Apple Watch (see companion/README.md).

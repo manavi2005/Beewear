@@ -30,9 +30,24 @@ attune run                      # synthetic demo (default)
 attune run --source replay      # replay a recorded Bee conversation fixture
 attune run --json               # full machine-readable result
 attune version                  # show active config + whether the coach is free/paid
-attune serve                    # start the ingestion+run API (for the companion app)
+attune serve                    # start the ingestion+run API + live dashboard
+attune doctor                   # readiness checklist for testing on your Apple Watch
+attune simulate-watch           # stream fake Watch vitals to a running server (no Watch needed)
 pytest                          # run the test suite
 ```
+
+## Test the whole loop without the Watch (or before the app is built)
+
+```bash
+attune serve --lan              # terminal 1 — binds LAN, prints the URL for the dashboard/app
+attune simulate-watch           # terminal 2 — streams fake Apple Watch vitals into it
+# open http://127.0.0.1:8000/  → click "● Live" and watch the heart-rate chart update
+```
+
+The dashboard (served at `/`) shows a live BPM tile, a heart-rate chart with the salient
+moments marked, the ranked recommendations, and 1–5 **check-in buttons** that send a
+self-report (the authoritative signal). `attune simulate-watch --backfill 15` seeds 15 minutes
+of history in one shot instead of streaming.
 
 ## Using real data
 
@@ -54,9 +69,11 @@ src/attune/
   align/           baseline + timestamp aligner
   detect/          pluggable moment detectors
   coach/           guardrails + template/ollama/anthropic backends
-  store.py         SQLite persistence
+  store.py         SQLite persistence (idempotent vitals ingestion)
   pipeline.py      orchestration
-  api.py           FastAPI service
+  api.py           FastAPI service + live dashboard
+  simulate.py      software Apple Watch (for simulate-watch)
+  netutil.py       LAN-IP discovery (for doctor / serve --lan)
   cli.py           `attune` command
 fixtures/          sample Bee conversation + Apple Health export
 tests/             pytest suite

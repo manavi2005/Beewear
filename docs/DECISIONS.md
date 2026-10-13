@@ -367,4 +367,42 @@ this top-to-bottom and understand *why* the code looks the way it does — not j
   self-report remains authoritative, and recommendations are framed as private learning
   support. The specialization is covered by tests for both the NeuroLearn and generic paths.
 
+---
+
+## ADR-023: A software Watch simulator + a readiness `doctor` for watch testing
+
+- **Status:** accepted
+- **Context:** Getting onto a real Apple Watch requires an Xcode build, signing, a device, and
+  the laptop reachable on the LAN — several steps that each fail silently. We wanted to (a)
+  exercise the whole server → store → dashboard loop **before** the app exists and (b) make the
+  remaining steps explicit.
+- **Decision:** Add `attune simulate-watch` (a `WatchSimulator` that POSTs canonical vitals to
+  a running server, as `source="simulated_watch"`, either backfilling a window or streaming
+  live), `attune doctor` (prints a readiness checklist: LAN IP + the exact URL to paste into
+  the app, `vitals_source`, whether a server/Bee proxy is reachable), and `attune serve --lan`
+  (binds `0.0.0.0` and prints the LAN URL). A tiny `netutil.lan_ip()` discovers the address.
+- **Consequences:** The demo and the pipeline can be fully exercised with zero hardware, and
+  the real-Watch path is reduced to a short, printed checklist. The simulator is canonical, so
+  nothing downstream distinguishes it from the real app.
+
+---
+
+## ADR-024: Live dashboard — heart-rate chart, BPM tile, check-ins, live mode
+
+- **Status:** accepted
+- **Context:** The static dashboard ran an analysis on demand but didn't show the physiology
+  as it arrived, and (bug) it read `moment.salience`, which wasn't serialized — so moments and
+  recommendations silently failed to render in a browser.
+- **Decision:** 
+  - **Bug fix:** make `Moment.salience` a Pydantic `@computed_field` so it ships in the JSON.
+  - **Bug fix:** make vitals ingestion idempotent (`INSERT OR IGNORE` on
+    `(ts_ms, type, source)`) so re-runs and live polling don't accumulate duplicates.
+  - **Feature:** `GET /vitals/recent` (downsampled HR/HRV series) powers a new inline-SVG
+    heart-rate chart with the salient-moment markers overlaid, a live BPM tile, one-tap
+    check-in buttons (1–5) that POST `/ingest/checkin`, and a "Live" toggle that re-runs every
+    few seconds — so a streaming Watch updates the page in near real time.
+- **Consequences:** The dashboard mirrors the PDF's "physiology alongside the conversation
+  moment" concept and is demo-ready. The check-in buttons make the authoritative self-report
+  signal (ADR-020) interactive.
+
 <!-- Append new ADRs below as decisions are made. Never rewrite history; supersede instead. -->

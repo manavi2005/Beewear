@@ -178,7 +178,7 @@ _INDEX_HTML = """\
     .signal span { color: var(--muted); font-size: 12px; }
     .workspace {
       display: grid;
-      grid-template-rows: minmax(220px, .9fr) minmax(260px, 1.1fr);
+      grid-template-rows: 172px minmax(180px, .85fr) minmax(220px, 1fr);
       min-height: 0;
       gap: 16px;
       background: transparent;
@@ -233,6 +233,33 @@ _INDEX_HTML = """\
     }
     .empty, .error { padding: 18px 14px; color: var(--muted); font-size: 14px; }
     .error { color: var(--danger); }
+    /* live BPM tile + live toggle */
+    .bpm { display: flex; align-items: baseline; gap: 6px; color: var(--danger); }
+    .bpm b { font-size: 22px; line-height: 1; font-variant-numeric: tabular-nums; }
+    .bpm span { font-size: 12px; color: var(--muted); }
+    .heart { color: var(--danger); animation: beat 1s ease-in-out infinite; }
+    @keyframes beat { 0%,100% { transform: scale(1); } 15% { transform: scale(1.25); } }
+    .ghost { background: var(--panel); color: var(--ink); border-color: var(--line); }
+    .ghost.on { background: var(--danger); color: #fff; border-color: var(--danger); }
+    /* check-in control */
+    .checkin { padding: 11px 14px; border-bottom: 1px solid var(--line); display: grid; gap: 7px; }
+    .checkin > span { color: var(--muted); font-size: 12px; }
+    .rate { display: flex; gap: 6px; }
+    .rate button {
+      flex: 1; min-height: 30px; padding: 0; background: var(--soft); color: var(--ink);
+      border: 1px solid var(--line); font-weight: 700;
+    }
+    .rate button:hover { background: #e7f1ee; border-color: var(--accent); }
+    /* HR chart */
+    .chart-panel { grid-template-rows: auto 1fr; }
+    .chartwrap { padding: 8px 12px 12px; min-height: 0; }
+    #chart { width: 100%; height: 100%; display: block; }
+    .chart-grid { stroke: var(--line); stroke-width: 1; }
+    .chart-line { fill: none; stroke: var(--danger); stroke-width: 2; }
+    .chart-area { fill: var(--danger); opacity: .07; }
+    .chart-marker { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 3 3; }
+    .chart-dot { fill: var(--accent); }
+    .chart-label { fill: var(--muted); font-size: 10px; }
     @media (max-width: 860px) {
       header { align-items: flex-start; flex-direction: column; }
       .toolbar { justify-content: flex-start; }
@@ -253,11 +280,15 @@ _INDEX_HTML = """\
         <div class="subtitle">Bee conversation + Watch context study coach</div>
       </div>
       <div class="toolbar">
+        <div class="bpm" title="most recent heart rate">
+          <span class="heart">♥</span><b id="bpm">—</b><span>bpm</span>
+        </div>
         <label class="field">
           Lookback
           <input id="lookback" type="number" min="5" max="240" step="5" value="60" />
           min
         </label>
+        <button id="live" class="ghost" title="auto-refresh every few seconds">● Live</button>
         <button id="run">Run Analysis</button>
       </div>
     </header>
@@ -274,9 +305,29 @@ _INDEX_HTML = """\
           <div class="stat"><b id="recs">0</b><span>recommendations</span></div>
         </div>
         <div class="config" id="config"></div>
+        <div class="checkin">
+          <span>How hard did that feel? (sends a self-report now)</span>
+          <div class="rate">
+            <button data-val="1">1</button>
+            <button data-val="2">2</button>
+            <button data-val="3">3</button>
+            <button data-val="4">4</button>
+            <button data-val="5">5</button>
+          </div>
+        </div>
         <div class="signals" id="signals"></div>
       </aside>
       <section class="workspace">
+        <section class="panel chart-panel">
+          <div class="section-head">
+            <h2>Heart rate <span class="stamp">vs. your own baseline</span></h2>
+            <span class="stamp" id="chartmeta"></span>
+          </div>
+          <div class="chartwrap">
+            <svg id="chart" viewBox="0 0 600 150" preserveAspectRatio="none"
+              xmlns="http://www.w3.org/2000/svg"></svg>
+          </div>
+        </section>
         <section class="panel">
           <div class="section-head">
             <h2>Recommendations</h2>
@@ -300,6 +351,91 @@ _INDEX_HTML = """\
       hour: "2-digit", minute: "2-digit", second: "2-digit"
     });
     const titleCase = (s) => s.replaceAll("_", " ").replace(/\\b\\w/g, c => c.toUpperCase());
+
+    let lastMoments = [];
+    let liveTimer = null;
+
+    function renderBpm(v) {
+      $("bpm").textContent = (v.latest_bpm == null) ? "—" : Math.round(v.latest_bpm);
+    }
+
+    function renderChart(v, moments) {
+      const svg = $("chart");
+      const W = 600, H = 150, pad = 6;
+      const hr = v.heart_rate || [];
+      if (hr.length < 2) {
+        svg.innerHTML = "";
+        $("chartmeta").textContent = "waiting for vitals — try: attune simulate-watch";
+        return;
+      }
+      const start = v.start_ms, end = v.end_ms, span = Math.max(1, end - start);
+      const vals = hr.map(p => p[1]);
+      let lo = Math.min(...vals), hi = Math.max(...vals);
+      if (hi - lo < 8) { const m = (hi + lo) / 2; lo = m - 4; hi = m + 4; }
+      const x = (ts) => ((ts - start) / span) * W;
+      const y = (val) => H - pad - ((val - lo) / (hi - lo)) * (H - 2 * pad);
+      const pts = hr.map(p => `${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join(" ");
+      const firstX = x(hr[0][0]).toFixed(1);
+      const lastX = x(hr[hr.length - 1][0]).toFixed(1);
+      const area = `M${firstX},${H} L${pts.replaceAll(" ", " L")} L${lastX},${H} Z`;
+
+      const nearestY = (ts) => {
+        let best = hr[0], bd = Infinity;
+        for (const p of hr) { const d = Math.abs(p[0] - ts); if (d < bd) { bd = d; best = p; } }
+        return y(best[1]);
+      };
+      const markers = (moments || [])
+        .filter(m => m.ts_ms >= start && m.ts_ms <= end)
+        .map(m => {
+          const mx = x(m.ts_ms).toFixed(1);
+          const cy = nearestY(m.ts_ms).toFixed(1);
+          return `<line class="chart-marker" x1="${mx}" y1="0" x2="${mx}" y2="${H}"></line>`
+               + `<circle class="chart-dot" cx="${mx}" cy="${cy}" r="3"></circle>`;
+        }).join("");
+
+      const midStr = ((y(lo) + y(hi)) / 2).toFixed(1);
+      svg.innerHTML =
+        `<line class="chart-grid" x1="0" y1="${midStr}" x2="${W}" y2="${midStr}"></line>`
+        + `<path class="chart-area" d="${area}"></path>`
+        + `<polyline class="chart-line" points="${pts}"></polyline>`
+        + markers;
+      const now = v.latest_bpm == null ? "—" : Math.round(v.latest_bpm);
+      const nMark = (moments || []).filter(m => m.ts_ms >= start && m.ts_ms <= end).length;
+      const plural = nMark === 1 ? "" : "s";
+      $("chartmeta").textContent =
+        `min ${Math.round(lo)} · max ${Math.round(hi)} · now ${now} bpm · ${nMark} moment${plural}`;
+    }
+
+    async function loadVitals(lookback) {
+      try {
+        const v = await fetch(`/vitals/recent?lookback_minutes=${lookback}`).then(r => r.json());
+        renderBpm(v);
+        renderChart(v, lastMoments);
+      } catch (_) { /* leave previous chart */ }
+    }
+
+    async function postCheckin(value) {
+      try {
+        await fetch("/ingest/checkin", {
+          method: "POST", headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({ts_ms: Date.now(), value, label: "self-report",
+                                 prompt: "How hard did that feel, 1-5?"})
+        });
+        $("updated").textContent = `check-in ${value}/5 sent`;
+        load();
+      } catch (err) { $("updated").textContent = "check-in failed"; }
+    }
+
+    function toggleLive() {
+      if (liveTimer) {
+        clearInterval(liveTimer); liveTimer = null;
+        $("live").classList.remove("on");
+      } else {
+        $("live").classList.add("on");
+        liveTimer = setInterval(load, 4000);
+        load();
+      }
+    }
 
     function setConfig(health) {
       $("config").innerHTML = [
@@ -379,6 +515,8 @@ _INDEX_HTML = """\
         renderSignals(result.salient_moments);
         renderRecommendations(result.recommendations);
         renderMoments(result.salient_moments);
+        lastMoments = result.salient_moments;
+        await loadVitals(lookback);
       } catch (err) {
         $("recommendations").innerHTML = `<div class="error">${err.message}</div>`;
         $("updated").textContent = "Error";
@@ -388,6 +526,10 @@ _INDEX_HTML = """\
     }
 
     $("run").addEventListener("click", load);
+    $("live").addEventListener("click", toggleLive);
+    document.querySelectorAll(".rate button").forEach(
+      (b) => b.addEventListener("click", () => postCheckin(Number(b.dataset.val)))
+    );
     load();
   </script>
 </body>
@@ -416,6 +558,17 @@ class RunRequest(BaseModel):
     start_ms: int | None = None
     end_ms: int | None = None
     lookback_minutes: int = 60
+
+
+class VitalsRecent(BaseModel):
+    """Downsampled recent vitals for the live dashboard chart (ADR-024)."""
+
+    start_ms: int
+    end_ms: int
+    latest_bpm: float | None = None
+    latest_ms: int | None = None
+    heart_rate: list[list[float]] = []  # [[ts_ms, bpm], ...]
+    hrv_sdnn: list[list[float]] = []  # [[ts_ms, ms], ...]
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -459,6 +612,47 @@ def ingest_checkin(checkin: CheckIn) -> IngestResult:
     finally:
         store.close()
     return IngestResult(ingested=1)
+
+
+@app.get("/vitals/recent", response_model=VitalsRecent)
+def vitals_recent(lookback_minutes: int = 60, max_points: int = 240) -> VitalsRecent:
+    """Recent heart-rate / HRV series (downsampled) for the live chart + BPM tile."""
+    from attune.models import VitalType
+
+    start_ms, end_ms = default_window(lookback_minutes)
+    store = _store()
+    try:
+        samples = store.get_vitals(start_ms, end_ms)
+    finally:
+        store.close()
+
+    hr = sorted(
+        ([s.ts_ms, s.value] for s in samples if s.type is VitalType.heart_rate),
+        key=lambda p: p[0],
+    )
+    hrv = sorted(
+        ([s.ts_ms, s.value] for s in samples if s.type is VitalType.hrv_sdnn),
+        key=lambda p: p[0],
+    )
+    latest_ms, latest_bpm = (hr[-1][0], hr[-1][1]) if hr else (None, None)
+    return VitalsRecent(
+        start_ms=start_ms,
+        end_ms=end_ms,
+        latest_bpm=latest_bpm,
+        latest_ms=int(latest_ms) if latest_ms is not None else None,
+        heart_rate=_downsample(hr, max_points),
+        hrv_sdnn=_downsample(hrv, max_points),
+    )
+
+
+def _downsample(points: list[list[float]], max_points: int) -> list[list[float]]:
+    """Keep at most ``max_points`` evenly across the series (last point always kept)."""
+    if len(points) <= max_points:
+        return points
+    step = len(points) / max_points
+    out = [points[int(i * step)] for i in range(max_points)]
+    out[-1] = points[-1]
+    return out
 
 
 @app.post("/run", response_model=PipelineResult)
