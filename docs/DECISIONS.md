@@ -397,10 +397,11 @@ this top-to-bottom and understand *why* the code looks the way it does — not j
   - **Bug fix:** make `Moment.salience` a Pydantic `@computed_field` so it ships in the JSON.
   - **Bug fix:** make vitals ingestion idempotent (`INSERT OR IGNORE` on
     `(ts_ms, type, source)`) so re-runs and live polling don't accumulate duplicates.
-  - **Feature:** `GET /vitals/recent` (downsampled HR/HRV series) powers a new inline-SVG
-    heart-rate chart with the salient-moment markers overlaid, a live BPM tile, one-tap
-    check-in buttons (1–5) that POST `/ingest/checkin`, and a "Live" toggle that re-runs every
-    few seconds — so a streaming Watch updates the page in near real time.
+  - **Feature:** `GET /vitals/recent` (downsampled HR/HRV series) powers a new inline-SVG chart
+    with **heart-rate and an HRV trend line on its own scale** (HRV moves inversely to HR, so
+    the dip aligns with the HR spike), the salient-moment markers overlaid, a live BPM tile,
+    one-tap check-in buttons (1–5) that POST `/ingest/checkin`, and a "Live" toggle that re-runs
+    every few seconds — so a streaming Watch updates the page in near real time.
 - **Consequences:** The dashboard mirrors the PDF's "physiology alongside the conversation
   moment" concept and is demo-ready. The check-in buttons make the authoritative self-report
   signal (ADR-020) interactive.

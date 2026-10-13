@@ -264,6 +264,19 @@ _INDEX_HTML = """\
     .chart-marker { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 3 3; }
     .chart-dot { fill: var(--accent); }
     .chart-label { fill: var(--muted); font-size: 10px; }
+    .chart-hrv { fill: none; stroke: var(--blue); stroke-width: 1.5; opacity: .9; }
+    .chart-title { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+    .legend {
+      display: inline-flex; align-items: center; gap: 10px;
+      color: var(--muted); font-size: 12px;
+    }
+    .legend .pair { display: inline-flex; align-items: center; gap: 5px; }
+    .sw {
+      width: 14px; height: 0; display: inline-block;
+      border-top: 2px solid transparent;
+    }
+    .sw.hr { border-color: var(--danger); }
+    .sw.hrv { border-color: var(--blue); }
     @media (max-width: 860px) {
       header { align-items: flex-start; flex-direction: column; }
       .toolbar { justify-content: flex-start; }
@@ -324,7 +337,13 @@ _INDEX_HTML = """\
       <section class="workspace">
         <section class="panel chart-panel">
           <div class="section-head">
-            <h2>Heart rate <span class="stamp">vs. your own baseline</span></h2>
+            <div class="chart-title">
+              <h2>Heart rate &amp; HRV <span class="stamp">vs. your own baseline</span></h2>
+              <span class="legend">
+                <span class="pair"><span class="sw hr"></span>HR</span>
+                <span class="pair"><span class="sw hrv"></span>HRV</span>
+              </span>
+            </div>
             <span class="stamp" id="chartmeta"></span>
           </div>
           <div class="chartwrap">
@@ -398,17 +417,32 @@ _INDEX_HTML = """\
                + `<circle class="chart-dot" cx="${mx}" cy="${cy}" r="3"></circle>`;
         }).join("");
 
+      // HRV trend on its OWN scale (ms; typically moves inversely to heart rate).
+      const hrv = v.hrv_sdnn || [];
+      let hrvLine = "", hrvMeta = "";
+      if (hrv.length >= 2) {
+        const hv = hrv.map(p => p[1]);
+        let hlo = Math.min(...hv), hhi = Math.max(...hv);
+        if (hhi - hlo < 6) { const m = (hhi + hlo) / 2; hlo = m - 3; hhi = m + 3; }
+        const yH = (val) => H - pad - ((val - hlo) / (hhi - hlo)) * (H - 2 * pad);
+        const hpts = hrv.map(p => `${x(p[0]).toFixed(1)},${yH(p[1]).toFixed(1)}`).join(" ");
+        hrvLine = `<polyline class="chart-hrv" points="${hpts}"></polyline>`;
+        hrvMeta = ` · HRV ${Math.round(hlo)}–${Math.round(hhi)} ms`;
+      }
+
       const midStr = ((y(lo) + y(hi)) / 2).toFixed(1);
       svg.innerHTML =
         `<line class="chart-grid" x1="0" y1="${midStr}" x2="${W}" y2="${midStr}"></line>`
         + `<path class="chart-area" d="${area}"></path>`
         + `<polyline class="chart-line" points="${pts}"></polyline>`
+        + hrvLine
         + markers;
       const now = v.latest_bpm == null ? "—" : Math.round(v.latest_bpm);
       const nMark = (moments || []).filter(m => m.ts_ms >= start && m.ts_ms <= end).length;
       const plural = nMark === 1 ? "" : "s";
+      const hrRange = `HR ${Math.round(lo)}–${Math.round(hi)}`;
       $("chartmeta").textContent =
-        `min ${Math.round(lo)} · max ${Math.round(hi)} · now ${now} bpm · ${nMark} moment${plural}`;
+        `${hrRange}${hrvMeta} · now ${now} bpm · ${nMark} moment${plural}`;
     }
 
     async function loadVitals(lookback) {

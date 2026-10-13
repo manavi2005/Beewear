@@ -44,9 +44,10 @@ attune simulate-watch           # terminal 2 — streams fake Apple Watch vitals
 # open http://127.0.0.1:8000/  → click "● Live" and watch the heart-rate chart update
 ```
 
-The dashboard (served at `/`) shows a live BPM tile, a heart-rate chart with the salient
-moments marked, the ranked recommendations, and 1–5 **check-in buttons** that send a
-self-report (the authoritative signal). **Live** mode is push-based: it subscribes to a
+The dashboard (served at `/`) shows a live BPM tile, a **heart-rate + HRV** chart with the
+salient moments marked (HRV on its own scale — it dips as HR rises), the ranked
+recommendations, and 1–5 **check-in buttons** that send a self-report (the authoritative
+signal). **Live** mode is push-based: it subscribes to a
 Server-Sent Events stream (`GET /events`), so the BPM and chart update the instant a sample is
 ingested — no polling (ADR-025). `attune simulate-watch --backfill 15` seeds 15 minutes of
 history in one shot instead of streaming.
