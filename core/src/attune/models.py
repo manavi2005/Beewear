@@ -15,7 +15,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -131,6 +131,7 @@ class Moment(BaseModel):
     )
     signals: list[Signal] = Field(default_factory=list)
 
+    @computed_field  # serialized into JSON so the dashboard/API can rank moments
     @property
     def salience(self) -> float:
         """Total salience of attached signals — used to rank moments for the coach."""

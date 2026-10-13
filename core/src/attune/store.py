@@ -17,11 +17,15 @@ from attune.models import CheckIn, Conversation, VitalSample
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS vitals (
-    ts_ms INTEGER NOT NULL,
-    type  TEXT    NOT NULL,
-    data  TEXT    NOT NULL
+    ts_ms  INTEGER NOT NULL,
+    type   TEXT    NOT NULL,
+    source TEXT    NOT NULL DEFAULT '',
+    data   TEXT    NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_vitals_ts ON vitals(ts_ms);
+-- Idempotent ingestion: the same sample (same instant, type, device) inserts once, so
+-- re-runs and live polling don't accumulate duplicates.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_vitals ON vitals(ts_ms, type, source);
 
 CREATE TABLE IF NOT EXISTS conversations (
     id       TEXT PRIMARY KEY,
@@ -58,10 +62,14 @@ class Store:
 
     # ── vitals ──────────────────────────────────────────────────────────────
     def add_vitals(self, samples: list[VitalSample]) -> int:
-        rows = [(s.ts_ms, s.type.value, s.model_dump_json()) for s in samples]
-        self._conn.executemany("INSERT INTO vitals(ts_ms, type, data) VALUES (?, ?, ?)", rows)
+        """Insert samples, ignoring exact duplicates. Returns the number actually inserted."""
+        rows = [(s.ts_ms, s.type.value, s.source, s.model_dump_json()) for s in samples]
+        before = self._conn.total_changes
+        self._conn.executemany(
+            "INSERT OR IGNORE INTO vitals(ts_ms, type, source, data) VALUES (?, ?, ?, ?)", rows
+        )
         self._conn.commit()
-        return len(rows)
+        return self._conn.total_changes - before
 
     def get_vitals(self, start_ms: int, end_ms: int) -> list[VitalSample]:
         cur = self._conn.execute(

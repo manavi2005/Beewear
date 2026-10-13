@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import tempfile
 
 from attune.config import Settings
@@ -69,6 +70,30 @@ def test_generic_vertical_keeps_vertical_detectors_out():
     kinds = {s.kind for m in result.salient_moments for s in m.signals}
     assert "study_objective" not in kinds
     assert "concept_link" not in kinds
+
+
+def test_salience_is_serialized_for_the_dashboard():
+    """The dashboard ranks moments by salience, so it must be in the JSON (regression)."""
+    result = Pipeline(_settings()).run(*default_window(60))
+    dumped = json.loads(result.model_dump_json())
+    assert dumped["salient_moments"], "expected salient moments"
+    assert "salience" in dumped["salient_moments"][0]
+    assert dumped["salient_moments"][0]["salience"] > 0
+
+
+def test_vitals_ingestion_is_idempotent():
+    """Re-adding the same samples must not accumulate duplicates (Live mode / re-runs)."""
+    settings = _settings()
+    store = Store(settings.db_path)
+    start, end = default_window(60)
+    batch = [
+        VitalSample(type=VitalType.heart_rate, ts_ms=start + i * 1000, value=70 + i,
+                    unit="count/min", source="apple_watch")
+        for i in range(10)
+    ]
+    assert store.add_vitals(batch) == 10
+    assert store.add_vitals(batch) == 0  # all duplicates ignored
+    assert len(store.get_vitals(start, end)) == 10
 
 
 def test_replay_source_runs():
