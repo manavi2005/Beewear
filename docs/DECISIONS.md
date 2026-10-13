@@ -405,4 +405,25 @@ this top-to-bottom and understand *why* the code looks the way it does — not j
   moment" concept and is demo-ready. The check-in buttons make the authoritative self-report
   signal (ADR-020) interactive.
 
+---
+
+## ADR-025: Live dashboard is push-based (Server-Sent Events), not polling
+
+- **Status:** accepted (supersedes the polling half of ADR-024)
+- **Context:** Live mode re-ran `/run` every 4 seconds. That lags behind arriving samples,
+  wastes work when nothing changed, and scales poorly. We want the chart/BPM to update the
+  instant a Watch sample lands.
+- **Decision:** Add a `GET /events` **Server-Sent Events** stream backed by a tiny in-process
+  pub/sub `Broker` (`attune.events`). The sync ingest handlers publish `vitals` / `checkin`
+  events after storing; `publish()` is thread-safe (ingest runs in a threadpool, subscribers
+  live on the event loop, so it hands each subscriber a `call_soon_threadsafe`). The dashboard's
+  Live toggle opens an `EventSource`: on each `vitals` event it updates the BPM tile instantly
+  and refreshes the chart, and **debounces** the heavier `/run` to at most once every few
+  seconds. A 15s heartbeat keeps idle connections open. No new dependency (plain
+  `StreamingResponse`).
+- **Consequences:** Near-real-time updates with far less work; the browser auto-reconnects if
+  the stream drops. Single-process only — a multi-worker deployment would back the broker with
+  Redis behind the same interface. The debounced `/run` keeps recommendations fresh without
+  recomputing on every sample.
+
 <!-- Append new ADRs below as decisions are made. Never rewrite history; supersede instead. -->

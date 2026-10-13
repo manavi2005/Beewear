@@ -46,8 +46,10 @@ attune simulate-watch           # terminal 2 — streams fake Apple Watch vitals
 
 The dashboard (served at `/`) shows a live BPM tile, a heart-rate chart with the salient
 moments marked, the ranked recommendations, and 1–5 **check-in buttons** that send a
-self-report (the authoritative signal). `attune simulate-watch --backfill 15` seeds 15 minutes
-of history in one shot instead of streaming.
+self-report (the authoritative signal). **Live** mode is push-based: it subscribes to a
+Server-Sent Events stream (`GET /events`), so the BPM and chart update the instant a sample is
+ingested — no polling (ADR-025). `attune simulate-watch --backfill 15` seeds 15 minutes of
+history in one shot instead of streaming.
 
 ## Using real data
 
@@ -71,7 +73,8 @@ src/attune/
   coach/           guardrails + template/ollama/anthropic backends
   store.py         SQLite persistence (idempotent vitals ingestion)
   pipeline.py      orchestration
-  api.py           FastAPI service + live dashboard
+  api.py           FastAPI service + live dashboard + SSE (/events)
+  events.py        in-process pub/sub broker for Server-Sent Events
   simulate.py      software Apple Watch (for simulate-watch)
   netutil.py       LAN-IP discovery (for doctor / serve --lan)
   cli.py           `attune` command

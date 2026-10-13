@@ -12,12 +12,16 @@ across threads — simplest correct choice for a hackathon service.
 
 from __future__ import annotations
 
+import asyncio
+import json
+
 from fastapi import Body, FastAPI
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic import BaseModel
 
 from attune.config import get_settings
-from attune.models import CheckIn, VitalSample
+from attune.events import broker
+from attune.models import CheckIn, VitalSample, VitalType
 from attune.pipeline import Pipeline, PipelineResult, default_window, now_ms
 from attune.store import Store
 
@@ -353,7 +357,8 @@ _INDEX_HTML = """\
     const titleCase = (s) => s.replaceAll("_", " ").replace(/\\b\\w/g, c => c.toUpperCase());
 
     let lastMoments = [];
-    let liveTimer = null;
+    let eventSource = null;
+    let runDebounce = null;
 
     function renderBpm(v) {
       $("bpm").textContent = (v.latest_bpm == null) ? "—" : Math.round(v.latest_bpm);
@@ -426,16 +431,42 @@ _INDEX_HTML = """\
       } catch (err) { $("updated").textContent = "check-in failed"; }
     }
 
-    function toggleLive() {
-      if (liveTimer) {
-        clearInterval(liveTimer); liveTimer = null;
-        $("live").classList.remove("on");
-      } else {
-        $("live").classList.add("on");
-        liveTimer = setInterval(load, 4000);
-        load();
-      }
+    function scheduleRun() {
+      // Vitals can arrive every couple of seconds; refresh the (heavier) analysis at most
+      // once every few seconds, while BPM + chart update instantly below.
+      if (runDebounce) return;
+      runDebounce = setTimeout(() => { runDebounce = null; load(); }, 4000);
     }
+
+    async function onVitals(e) {
+      try {
+        const d = JSON.parse(e.data);
+        if (d.latest_bpm != null) $("bpm").textContent = Math.round(d.latest_bpm);
+        $("updated").textContent = "live " + fmtTime(Date.now());
+      } catch (_) { /* ignore malformed */ }
+      await loadVitals(Number($("lookback").value || 60));  // instant chart refresh
+      scheduleRun();                                        // debounced recommendations
+    }
+
+    function onCheckin() { load(); }
+
+    function startLive() {
+      if (eventSource) return;
+      eventSource = new EventSource("/events");
+      eventSource.addEventListener("vitals", onVitals);
+      eventSource.addEventListener("checkin", onCheckin);
+      eventSource.onerror = () => { $("updated").textContent = "live (reconnecting…)"; };
+      $("live").classList.add("on");
+      load();  // seed immediately; pushes take over from here
+    }
+
+    function stopLive() {
+      if (eventSource) { eventSource.close(); eventSource = null; }
+      if (runDebounce) { clearTimeout(runDebounce); runDebounce = null; }
+      $("live").classList.remove("on");
+    }
+
+    function toggleLive() { eventSource ? stopLive() : startLive(); }
 
     function setConfig(health) {
       $("config").innerHTML = [
@@ -589,36 +620,85 @@ def health() -> Health:
     )
 
 
+@app.get("/events")
+async def events() -> StreamingResponse:
+    """Server-Sent Events: push a message the instant vitals/check-ins are ingested (ADR-025).
+
+    The dashboard's Live mode subscribes here instead of polling, so the chart updates in real
+    time. A heartbeat every 15s keeps proxies from closing an idle connection.
+    """
+    queue = await broker.subscribe()
+
+    async def event_stream():
+        yield ": connected\n\n"
+        try:
+            while True:
+                try:
+                    event = await asyncio.wait_for(queue.get(), timeout=15.0)
+                    yield f"event: {event['type']}\ndata: {json.dumps(event['data'])}\n\n"
+                except asyncio.TimeoutError:
+                    yield ": keepalive\n\n"
+        finally:
+            broker.unsubscribe(queue)
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # disable proxy buffering so events flush immediately
+        },
+    )
+
+
 @app.post("/ingest/vitals", response_model=IngestResult)
 def ingest_vitals(
     samples: list[VitalSample] | VitalSample = Body(...),
 ) -> IngestResult:
-    """Receive one or many vital samples from the companion app (ADR-006/009)."""
+    """Receive one or many vital samples from the companion app (ADR-006/009).
+
+    After storing, push an SSE ``vitals`` event so live dashboards update instantly (ADR-025).
+    """
     batch = samples if isinstance(samples, list) else [samples]
     store = _store()
     try:
         n = store.add_vitals(batch)
     finally:
         store.close()
+    _publish_vitals(batch, n)
     return IngestResult(ingested=n)
+
+
+def _publish_vitals(batch: list[VitalSample], ingested: int) -> None:
+    """Broadcast a compact 'vitals' SSE event with the latest heart rate in this batch."""
+    hr = [s for s in batch if s.type is VitalType.heart_rate]
+    latest = max(hr, key=lambda s: s.ts_ms) if hr else None
+    broker.publish(
+        "vitals",
+        {
+            "ingested": ingested,
+            "latest_bpm": latest.value if latest else None,
+            "latest_ms": latest.ts_ms if latest else None,
+        },
+    )
 
 
 @app.post("/ingest/checkin", response_model=IngestResult)
 def ingest_checkin(checkin: CheckIn) -> IngestResult:
-    """Receive a user self-report (first-class signal; ETHICS rule 4)."""
+    """Receive a user self-report (first-class signal; ETHICS rule 4), and push an SSE event."""
     store = _store()
     try:
         store.add_checkin(checkin)
     finally:
         store.close()
+    broker.publish("checkin", {"ts_ms": checkin.ts_ms, "value": checkin.value})
     return IngestResult(ingested=1)
 
 
 @app.get("/vitals/recent", response_model=VitalsRecent)
 def vitals_recent(lookback_minutes: int = 60, max_points: int = 240) -> VitalsRecent:
     """Recent heart-rate / HRV series (downsampled) for the live chart + BPM tile."""
-    from attune.models import VitalType
-
     start_ms, end_ms = default_window(lookback_minutes)
     store = _store()
     try:
