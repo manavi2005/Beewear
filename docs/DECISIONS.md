@@ -427,4 +427,26 @@ this top-to-bottom and understand *why* the code looks the way it does — not j
   Redis behind the same interface. The debounced `/run` keeps recommendations fresh without
   recomputing on every sample.
 
+---
+
+## ADR-026: Generate the Xcode project with XcodeGen (verified building)
+
+- **Status:** accepted (refines ADR-018)
+- **Context:** The companion app shipped as Swift sources with a manual Xcode setup (ADR-018).
+  Creating two targets, setting file membership, adding the HealthKit capability and the
+  Info.plist/ATS keys by hand is tedious and error-prone.
+- **Decision:** Commit a declarative **`companion/project.yml`**; `xcodegen generate` produces
+  `Attune.xcodeproj` with both targets (`Attune` iOS, `AttuneWatch` watchOS), all files added
+  with correct membership (`Shared/` in both), the HealthKit entitlement, the Info.plist usage
+  strings, and the dev-only ATS exception. Generated artifacts (`.xcodeproj`, per-target
+  `Info.plist`, `.entitlements`) are gitignored — `project.yml` is the source of truth. Two
+  independent app targets (no watch-embedding) so each builds/runs on its own simulator.
+- **Verified:** both targets build in Xcode 27; the iOS app runs in the Simulator and the
+  HealthKit authorization sheet appears with the exact types the code requests (HR, HRV, wrist
+  temperature, respiratory, sleep).
+- **Consequences:** Setup collapses from a dozen manual steps to one command. Signing team stays
+  per-user in Xcode (not in `project.yml`). **Gotcha documented:** build DerivedData must live
+  outside iCloud-synced folders — codesign rejects the File Provider xattrs that the synced
+  Desktop/Documents add; Xcode's default DerivedData location (`~/Library`) is fine.
+
 <!-- Append new ADRs below as decisions are made. Never rewrite history; supersede instead. -->

@@ -4,10 +4,11 @@ A thin Swift app that reads **Apple Watch** vitals from HealthKit and POSTs them
 Attune core's `/ingest/vitals` endpoint (ADR-006/009). All intelligence lives in the core;
 this app only *moves data*.
 
-> ### ▶ Building it? Follow **[XCODE_SETUP.md](XCODE_SETUP.md)** — the full copy-paste walkthrough.
-> It takes you from these source files to the app running on your iPhone + Apple Watch, with
-> exact menu paths, the Info.plist keys to paste, signing, and a troubleshooting table. The
-> sections below are the quick reference.
+> ### ▶ Building it? `brew install xcodegen && cd companion && xcodegen generate && open Attune.xcodeproj`
+> `project.yml` encodes both targets, file membership, HealthKit capability, Info.plist keys and
+> the ATS exception, so one command gives you a ready project (verified building in Xcode 27 with
+> the iOS app + HealthKit running in the Simulator). Full details, signing, and troubleshooting
+> in **[XCODE_SETUP.md](XCODE_SETUP.md)**. The sections below are background on what each file does.
 
 > **Why source files + a setup guide instead of a ready `.xcodeproj`?** See ADR-018 in
 > [`../docs/DECISIONS.md`](../docs/DECISIONS.md). A hand-authored `project.pbxproj` is

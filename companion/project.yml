@@ -1,0 +1,90 @@
+# XcodeGen spec — generates Attune.xcodeproj from the Swift sources (ADR-018/026).
+#   brew install xcodegen && cd companion && xcodegen generate && open Attune.xcodeproj
+# Then set your signing Team on both targets and Run. Two independent app targets (iOS +
+# watchOS) so each builds/runs on its own simulator or device without embedding fuss.
+
+name: Attune
+options:
+  bundleIdPrefix: com.attune.hackathon
+  deploymentTarget:
+    iOS: "17.0"
+    watchOS: "10.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0" # Swift 5 language mode — avoids Swift 6 strict-concurrency churn
+    CODE_SIGN_STYLE: Automatic
+    GENERATE_INFOPLIST_FILE: NO # we supply a full Info.plist per target (for the ATS dict)
+    DEVELOPMENT_TEAM: "" # set your Apple ID team in Xcode before running on a device
+
+targets:
+  # ── iOS app: reads HR/HRV/sleep (incl. Watch data synced to the phone) and POSTs them ──
+  Attune:
+    type: application
+    platform: iOS
+    sources:
+      - Shared
+      - AttuneiOS
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.attune.hackathon.ios
+    info:
+      path: AttuneiOS/Info.plist
+      properties:
+        CFBundleDisplayName: Attune
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSHealthShareUsageDescription: "Attune reads your heart rate, HRV, respiratory rate and sleep to align them with your conversations for private self-coaching."
+        NSHealthUpdateUsageDescription: "Attune reads your health data; it does not write any."
+        NSLocalNetworkUsageDescription: "Attune sends your vitals to the Attune core running on your computer on your local network."
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+          NSAllowsLocalNetworking: true
+    entitlements:
+      path: AttuneiOS/Attune.entitlements
+      properties:
+        com.apple.developer.healthkit: true
+
+  # ── watchOS app: streams live on-wrist heart rate straight to the core ──
+  AttuneWatch:
+    type: application
+    platform: watchOS
+    sources:
+      - Shared
+      - AttuneWatch
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.attune.hackathon.watch
+    info:
+      path: AttuneWatch/Info.plist
+      properties:
+        CFBundleDisplayName: Attune
+        WKApplication: true
+        WKWatchOnly: true
+        NSHealthShareUsageDescription: "Attune reads your heart rate to stream it for private self-coaching."
+        NSHealthUpdateUsageDescription: "Attune reads your health data; it does not write any."
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+          NSAllowsLocalNetworking: true
+    entitlements:
+      path: AttuneWatch/Attune.entitlements
+      properties:
+        com.apple.developer.healthkit: true
+
+schemes:
+  Attune:
+    build:
+      targets:
+        Attune: all
+    run:
+      config: Debug
+  AttuneWatch:
+    build:
+      targets:
+        AttuneWatch: all
+    run:
+      config: Debug
