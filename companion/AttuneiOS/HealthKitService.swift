@@ -88,13 +88,15 @@ final class HealthKitService: ObservableObject {
     func startLiveSync() {
         for type in HealthKitSupport.readTypes {
             guard let st = type as? HKSampleType else { continue }
+            // HealthKit calls these handlers off the main actor; hop back before touching
+            // @MainActor state.
             let query = HKAnchoredObjectQuery(
                 type: st, predicate: nil, anchor: anchors[st], limit: HKObjectQueryNoLimit
             ) { [weak self] _, samples, _, newAnchor, _ in
-                self?.handleLive(type: st, samples: samples, newAnchor: newAnchor)
+                Task { @MainActor in self?.handleLive(type: st, samples: samples, newAnchor: newAnchor) }
             }
             query.updateHandler = { [weak self] _, samples, _, newAnchor, _ in
-                self?.handleLive(type: st, samples: samples, newAnchor: newAnchor)
+                Task { @MainActor in self?.handleLive(type: st, samples: samples, newAnchor: newAnchor) }
             }
             store.execute(query)
             liveQueries.append(query)
