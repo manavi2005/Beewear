@@ -84,11 +84,11 @@ pytest                # 11 tests, all green
 - ✅ Core pipeline (sources → store → align → detect → coach) — runs, tested, linted.
 - ✅ Bee proxy adapter, Apple Health export parser, synthetic + replay twins.
 - ✅ FastAPI ingestion/run service; `attune` CLI.
-- ✅ Companion app Swift sources + Xcode guide.
+- ✅ Companion app (iOS + watchOS): one-command Xcode project via XcodeGen; **both targets build in Xcode 27** and the iOS app + HealthKit run in the Simulator (ADR-018/026).
 - ✅ Self-report check-ins wired end-to-end as the authoritative signal (ADR-020).
 - ✅ GitHub Actions CI: ruff + pytest + CLI smoke test on Python 3.10/3.11/3.12 (ADR-021).
 - ✅ NeuroLearn vertical selected with study-objective/concept-link detectors + coach profile (ADR-022).
 - ✅ Watch-test tooling: `simulate-watch`, `doctor`, `serve --lan` — exercise the full loop with no hardware (ADR-023).
 - ✅ Live dashboard: heart-rate + HRV chart with moment markers, BPM tile, one-tap check-ins (ADR-024).
 - ✅ Push-based Live mode via Server-Sent Events — chart/BPM update the instant a sample lands (ADR-025).
-- ⏳ Build `companion/` in Xcode and stream from a real Apple Watch (see companion/README.md).
+- ⏳ Deploy `companion/` to a real iPhone + Apple Watch for live on-wrist HR (needs your Apple ID signing; see [companion/XCODE_SETUP.md](companion/XCODE_SETUP.md)).
